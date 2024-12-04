@@ -1,0 +1,142 @@
+###For Data exploration and preprocessing###
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+from google.colab import files
+uploaded = files.upload()
+file_name = list(uploaded.keys())[0]
+dataset = pd.read_csv(file_name)
+
+print("Number of Rows:", dataset.shape[0])
+print("Number of Columns:", dataset.shape[1])
+print("\nColumns:\n", dataset.columns.tolist())
+print("\nMissing Values per Column:\n", dataset.isnull().sum())
+print("\nData Types:\n", dataset.dtypes)
+
+# for missing values (e.g., Cuisines column)
+if "Cuisines" in dataset.columns:
+    dataset["Cuisines"].fillna("Unknown", inplace=True)
+
+binary_columns = ["Has Table booking", "Has Online delivery", "Is delivering now", "Switch to order menu"]
+for col in binary_columns:
+    if col in dataset.columns:
+        dataset[col] = dataset[col].apply(lambda x: True if x == "Yes" else False)
+
+# for Analyze the target variable distribution
+target_column = "Aggregate rating"
+if target_column in dataset.columns:
+    plt.figure(figsize=(10, 6))
+    sns.histplot(dataset[target_column], kde=True, bins=20, color='blue')
+    plt.title(f"Distribution of {target_column}")
+    plt.xlabel(target_column)
+    plt.ylabel("Frequency")
+    plt.show()
+
+    # Checking for class imbalance (if it's a classification problem)
+    print(dataset[target_column].value_counts())
+
+
+###For Descriptive Analysis###
+
+
+# Calculating basic statistical measures for numerical columns
+numerical_stats = dataset.describe().T  # Transpose for better readability
+print("Basic Statistical Measures for Numerical Columns:")
+print(numerical_stats)
+
+# Exploring the distribution of categorical variables
+categorical_columns = ["Country Code", "City", "Cuisines"]
+for col in categorical_columns:
+    if col in dataset.columns:
+        print(f"\nDistribution of '{col}':")
+        print(dataset[col].value_counts())
+
+# Identifying the top cuisines and cities with the highest number of restaurants
+if "Cuisines" in dataset.columns:
+    top_cuisines = dataset["Cuisines"].value_counts().head(10)
+    print("\nTop 10 Cuisines:")
+    print(top_cuisines)
+
+if "City" in dataset.columns:
+    top_cities = dataset["City"].value_counts().head(10)
+    print("\nTop 10 Cities with the Highest Number of Restaurants:")
+    print(top_cities)
+
+# Visualizing the distributions 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Plot top cuisines
+if "Cuisines" in dataset.columns:
+    plt.figure(figsize=(10, 6))
+    sns.barplot(y=top_cuisines.index, x=top_cuisines.values, palette="viridis")
+    plt.title("Top 10 Cuisines")
+    plt.xlabel("Number of Restaurants")
+    plt.ylabel("Cuisines")
+    plt.show()
+
+# Plot top cities
+if "City" in dataset.columns:
+    plt.figure(figsize=(10, 6))
+    sns.barplot(y=top_cities.index, x=top_cities.values, palette="coolwarm")
+    plt.title("Top 10 Cities with the Highest Number of Restaurants")
+    plt.xlabel("Number of Restaurants")
+    plt.ylabel("City")
+    plt.show()
+
+###For geospacial Analysis###
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import folium
+
+# Visualizing restaurant locations on a map
+if "Latitude" in dataset.columns and "Longitude" in dataset.columns:
+    print("\nVisualizing restaurant locations on a map...")
+    # For Initialize a folium map
+    restaurant_map = folium.Map(location=[dataset["Latitude"].mean(), dataset["Longitude"].mean()], zoom_start=12)
+
+    # To add markers for restaurants
+    for _, row in dataset.iterrows():
+        folium.Marker(
+            location=[row["Latitude"], row["Longitude"]],
+            popup=row.get("Restaurant Name", "Unknown"),
+        ).add_to(restaurant_map)
+
+    # Saving map as HTML
+    restaurant_map.save("restaurant_locations_map.html")
+    print("Map saved as 'restaurant_locations_map.html'. You can open it in your browser.")
+
+# Analyze the distribution of restaurants across cities or countries
+if "City" in dataset.columns:
+    plt.figure(figsize=(12, 6))
+    top_cities = dataset["City"].value_counts().head(10)
+    sns.barplot(y=top_cities.index, x=top_cities.values, palette="coolwarm")
+    plt.title("Top 10 Cities with the Highest Number of Restaurants")
+    plt.xlabel("Number of Restaurants")
+    plt.ylabel("City")
+    plt.show()
+
+if "Country Code" in dataset.columns:
+    plt.figure(figsize=(12, 6))
+    country_distribution = dataset["Country Code"].value_counts()
+    sns.barplot(y=country_distribution.index, x=country_distribution.values, palette="viridis")
+    plt.title("Distribution of Restaurants by Country Code")
+    plt.xlabel("Number of Restaurants")
+    plt.ylabel("Country Code")
+    plt.show()
+
+# Correlation between location and ratings
+if {"Latitude", "Longitude", "Aggregate rating"}.issubset(dataset.columns):
+    correlation_data = dataset[["Latitude", "Longitude", "Aggregate rating"]]
+    print("\nCorrelation Matrix:")
+    print(correlation_data.corr())
+
+    # Heatmap for correlations
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(correlation_data.corr(), annot=True, cmap="coolwarm", fmt=".2f")
+    plt.title("Correlation Matrix for Location and Ratings")
+    plt.show()
